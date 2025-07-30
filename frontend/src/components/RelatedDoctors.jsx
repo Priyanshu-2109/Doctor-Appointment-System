@@ -24,7 +24,7 @@ const RelatedDoctors = ({ speciality, docId }) => {
       <p className="sm:w-1/3 text-center text-sm">
         Simply browse through our extensive list of trusted doctors.
       </p>
-      <div className="w-full grid grid-cols-5 gap-4 pt-5 gap-y-6 px-3 sm:px-0">
+      <div className="w-full grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4 pt-5 gap-y-6 px-3 sm:px-0">
         {relDoc.slice(0, 5).map((item, index) => (
           <div
             onClick={() => {navigate(`/appointment/${item._id}`); scrollTo(0, 0);}}
