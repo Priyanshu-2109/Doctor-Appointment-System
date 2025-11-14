@@ -1,45 +1,90 @@
 import { createContext, useEffect, useState } from "react";
-import axios from "axios";
 import { toast } from "react-toastify";
+import axios from 'axios'
 
-export const AppContext = createContext();
+export const AppContext = createContext()
 
 const AppContextProvider = (props) => {
-  const currencySymbol = "₹";
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const [doctors, setDoctors] = useState([]);
-  const [token, setToken] = useState("");
+    const currencySymbol = '₹'
+    // Normalize backend URL to avoid trailing slash issues like //api/...
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/+$/, '')
 
-  const getDoctorsData = async () => {
-    try {
-      const { data } = await axios.get(backendUrl + "/api/doctor/list");
-      if (data.success) {
-        setDoctors(data.doctors);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+    const [doctors, setDoctors] = useState([])
+    const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : '')
+    const [userData, setUserData] = useState(false)
+
+    // Getting Doctors using API
+    const getDoctosData = async () => {
+
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/doctor/list')
+            if (data.success) {
+                setDoctors(data.doctors)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+
     }
-  };
 
-  const value = {
-    doctors,
-    currencySymbol,
-    backendUrl,
-    token,
-    setToken,
-  };
+    // Getting User Profile using API
+    const loadUserProfileData = async () => {
 
-  useEffect(() => {
-    getDoctorsData();
-  }, []);
+        try {
 
-  return (
-    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
-  );
-};
+            const { data } = await axios.get(backendUrl + '/api/user/get-profile', { headers: { token } })
 
-export default AppContextProvider;
+            if (data.success) {
+                setUserData(data.userData)
+            } else {
+                // token is invalid/expired; clear it so login page can show
+                localStorage.removeItem('token')
+                setToken('')
+                setUserData(false)
+                toast.error(data.message || 'Session expired, please login again')
+            }
+
+        } catch (error) {
+            console.log(error)
+            // network or server error: assume token might be invalid; clear and require login
+            localStorage.removeItem('token')
+            setToken('')
+            setUserData(false)
+            toast.error(error?.message || 'Session expired, please login again')
+        }
+
+    }
+
+    useEffect(() => {
+        getDoctosData()
+    }, [])
+
+    useEffect(() => {
+        if (token) {
+            loadUserProfileData()
+        }
+    }, [token])
+
+    const value = {
+        doctors, getDoctosData,
+        currencySymbol,
+        backendUrl,
+        token, setToken,
+        userData, setUserData, loadUserProfileData
+    }
+
+    return (
+        <AppContext.Provider value={value}>
+            {props.children}
+        </AppContext.Provider>
+    )
+
+}
+
+export default AppContextProvider
